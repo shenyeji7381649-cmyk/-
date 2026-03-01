@@ -1,52 +1,85 @@
 # 架构说明（React + Node.js + PostgreSQL）
 
-## 1. 总体架构
+## 1. 高层架构
 
 ```text
 [ Browser / React ]
         |
-        | HTTP (JSON)
+        | HTTP(JSON)
         v
-[ Node.js API Layer ]
+[ Node.js API ]
         |
         | SQL / ORM
         v
 [ PostgreSQL ]
 ```
 
-- React 负责交互与展示
-- Node.js 负责业务逻辑与接口编排
-- PostgreSQL 负责持久化与事务一致性
+职责：
+- React：交互与视图
+- Node.js：业务逻辑与接口编排
+- PostgreSQL：事务与持久化
 
-## 2. 推荐分层（后端）
+## 2. 推荐后端分层
 
-- `routes/`：路由与基础参数解析
-- `controllers/`：请求编排与响应组装
-- `services/`：核心业务逻辑
-- `repositories/` 或 `db/`：数据访问
-- `middlewares/`：鉴权、日志、错误处理
+- `routes/`：路由注册、参数入口
+- `controllers/`：请求编排、响应组装
+- `services/`：核心业务规则
+- `repositories/`：数据读写
+- `middlewares/`：鉴权、日志、统一错误处理
 
-> 原则：控制器薄、服务层稳、数据访问可替换。
+**约束建议：**
+- Controller 不直连数据库
+- Service 不依赖 HTTP 对象
+- Repository 只负责数据访问，不混入业务规则
 
 ## 3. 前端模块建议
 
-- `pages/`：页面级组件
-- `components/`：可复用组件
-- `api/`：接口封装
-- `hooks/`：复用逻辑
+- `pages/`：页面容器
+- `components/`：复用 UI 组件
+- `api/`：请求封装
+- `hooks/`：状态与副作用复用
 - `store/`：全局状态（如有）
 
-> 原则：页面只做编排，副作用尽量收敛到 hooks 或 api 层。
+## 4. 接口与错误处理建议
 
-## 4. 关键非功能性要求
+### 响应结构（示例）
 
-- **可观测性**：请求日志、错误日志、关键指标
-- **安全性**：鉴权、输入校验、最小权限
-- **可维护性**：统一代码风格、清晰分层
-- **性能**：接口分页、缓存策略、SQL 索引
+```json
+{
+  "success": true,
+  "data": {},
+  "requestId": "xxx"
+}
+```
 
-## 5. 演进建议
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_PARAM",
+    "message": "title is required"
+  },
+  "requestId": "xxx"
+}
+```
 
-1. 先保证一条主业务链路稳定可回归
-2. 再抽象通用能力（鉴权、错误处理、日志）
-3. 最后再做高级优化（缓存、异步任务、读写分离）
+## 5. 非功能性要求（首期）
+
+- **可观测性**：请求日志、错误日志、requestId 贯通
+- **安全性**：输入校验、鉴权、最小权限
+- **性能**：分页、索引、慢查询排查
+- **可维护性**：统一风格、分层清晰、可测试
+
+## 6. 30/60/90 天演进建议
+
+### 0~30 天
+- 打通 1 条主链路并建立 CI
+- 规范日志与错误处理
+
+### 31~60 天
+- 增加鉴权体系与权限模型
+- 完善测试金字塔（单元/集成/e2e）
+
+### 61~90 天
+- 缓存与异步任务（队列）
+- 数据库读写优化与容量评估
